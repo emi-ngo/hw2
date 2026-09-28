@@ -1,0 +1,201 @@
+---
+title: "Homework 2"
+author: "Emi Ngo" 
+output: 
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(readr)
+```
+
+```{r}
+## Read CSV file into data frame
+#Note: AI was used to debug and turn code into functions for efficiency with 4 images
+x1 <- read_csv("~/hw2/HW2imagefiles/image1.csv")
+
+## Convert data frame into matrix
+x <- data.matrix(x1)
+
+image_compression <- function(x, k) {
+  V <- t(x) %*% x
+  eig <- eigen(V)
+  U <- eig$vectors
+  Z <- x %*% U
+  U_k <- U[, 1:k, drop = FALSE]
+  Z_k <- Z[, 1:k, drop = FALSE] 
+  X_k <- Z_k %*% t(U_k)
+  error_k <- norm(x - X_k, type = "F") #F for Frobenius norm
+  list(approximation = X_k, 
+       error = error_k, 
+       eigenvalues = eig$values, 
+       eigenvectors = U, 
+       scores = Z)
+  }
+```
+
+```{r}
+plot_image <- function(mat, main = "") {
+  image(
+    t(mat[nrow(mat):1, ]),
+    col = gray.colors(256, start = 0, end = 1),
+    axes = FALSE,
+    asp = 1,
+    main = main
+  )
+}
+
+plot_grid <- function(x) {
+  par(mfrow = c(3, 4), mar = c(1, 1, 2, 1))
+  plot_image(x, main = "Original")
+  for (k in 1:10) {
+    plot_image(image_compression(x, k)$approximation,
+               main = paste("k =", k))
+  }
+  par(mfrow = c(1, 1))
+}
+
+plot_errors <- function(x) {
+  eig <- eigen(t(x) %*% x)
+  U <- eig$vectors
+  Z <- x %*% U
+  max_k <- ncol(x)
+  errors <- sapply(1:max_k, function(k) {
+    X_k <- Z[, 1:k, drop = FALSE] %*% t(U[, 1:k, drop = FALSE])
+    norm(x - X_k, type = "F")
+  })
+  par(mfrow = c(1, 1), mar = c(4, 4, 2, 1))
+  plot(1:max_k, errors, type = "b", pch = 19,
+       xlab = "k", ylab = "Frobenius norm error",
+       main = "Approximation Error vs. k")
+  grid()
+}
+
+plot_first_pc <- function(x) {
+  res <- image_compression(x, 1)
+  par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+  plot(res$eigenvectors[, 1], type = "l",
+       xlab = "Column index", ylab = "Eigenvector value",
+       main = "First Eigenvector")
+  abline(h = 0, lty = 2)
+  plot(res$scores[, 1], type = "l",
+       xlab = "Row index", ylab = "PC score",
+       main = "First PC Score")
+  abline(h = 0, lty = 2)
+  par(mfrow = c(1, 1))
+}
+```
+
+## Image 1
+
+```{r}
+x <- read.csv("~/hw2/HW2imagefiles/image1.csv")
+x <- data.matrix(x)
+```
+
+
+```{r}
+plot_grid(x)
+```
+
+```{r}
+plot_errors(x)
+```
+
+```{r}
+plot_first_pc(x)
+```
+
+**Interpretation:**
+
+The image is so noisy and the eigenvector value spikes at around 79 according to the plot, every other column has a value of 0. A lot of noise. PC score oscillates consistent.
+
+**Choice of k:**
+
+The image has a lot of noise, it doesn't make much of a difference after k = 1.
+
+## Image 2
+
+```{r}
+x <- read_csv("~/hw2/HW2imagefiles/image2.csv")
+x <- data.matrix(x)
+```
+
+```{r}
+plot_grid(x)
+```
+
+### Approximation error vs. k
+
+```{r}
+plot_errors(x)
+```
+```{r}
+plot_first_pc(x)
+```
+
+**Interpretation:**
+
+Eigenvector value decreases linearly as the column index increases. PC score oscillates but not as much of a pattern as image 1's PC score plot.
+
+**Choice of k:**
+
+It all looks the same, k = 1 and the approximation error stays almost the same the whole time.
+
+## Image 3
+
+```{r}
+x <- read_csv("~/hw2/HW2imagefiles/image3.csv")
+x <- data.matrix(x)
+```
+
+```{r}
+plot_grid(x)
+```
+
+```{r}
+plot_errors(x)
+```
+
+```{r}
+plot_first_pc(x)
+```
+
+**Interpretation:**
+
+The graph has a logarithmic curve and starts to stabilize around 25, the image of the dog would be clearest aorund k = 25. Eigenvector reaches lowest point at column 260, PC score reaches peak at row indec 100 and lowest point at row index 400.
+
+**Choice of k:**
+
+k = 25 based off of the grid and the error graph, starts to reach logarithmic here.
+
+## Image 4
+
+```{r img4-load, message = FALSE}
+x <- read_csv("~/hw2/HW2imagefiles/image4.csv")
+x <- data.matrix(x)
+```
+
+```{r}
+plot_grid(x)
+```
+
+```{r}
+plot_errors(x)
+```
+
+```{r}
+plot_first_pc(x)
+```
+
+**Interpretation:**
+
+Eigenvector is highest around column 35 and plunges when column index is 80, row index follows a similar pattern but reaches lowest point at row index 110.
+
+**Choice of k:**
+
+You could do k = 10 based off of the error graph, starts to reach logarithmic here, but for finer details k = 20 since it takes a while to stabilize and you can't see the most clearly at k = 10.
+
+
+
